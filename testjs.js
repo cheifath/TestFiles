@@ -1,42 +1,32 @@
-const express = require("express");
-const mysql = require("mysql");
-const app = express();
+const mysql = require('mysql');
 
-app.use(express.json());
-
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "password",
-  database: "users_db"
+// Create a mock connection (replace with your test DB if needed)
+const connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'testdb'
 });
 
-app.post("/login", (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
+// Simulated user input (this could be from a form or query string)
+let username = "admin";
+let password = "' OR '1'='1"; // Injection payload for testing
 
-  // ❌ SQL Injection vulnerability
-  const query = 
-    "SELECT * FROM users WHERE username = '" +
-    username +
-    "' AND password = '" +
-    password +
-    "'";
+// ❌ VULNERABLE: Directly concatenating user input into SQL query
+let query = "SELECT * FROM users WHERE username = '" + username +
+            "' AND password = '" + password + "'";
 
-  db.query(query, (err, results) => {
+console.log("Executing query:", query);
+
+connection.query(query, (err, results) => {
     if (err) {
-      res.status(500).send("Database error");
-      return;
+        console.error("Database error:", err);
+        return;
     }
-
     if (results.length > 0) {
-      res.send("Login successful");
+        console.log("Login successful (vulnerable to SQL injection!)");
     } else {
-      res.status(401).send("Invalid credentials");
+        console.log("Login failed");
     }
-  });
-});
-
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+    connection.end();
 });
