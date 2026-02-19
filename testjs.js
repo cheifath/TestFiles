@@ -1,32 +1,58 @@
 const mysql = require('mysql');
+const util = require('util');
 
-// Create a mock connection (replace with your test DB if needed)
-const connection = mysql.createConnection({
+// Configuration (Mock)
+const dbConfig = {
     host: 'localhost',
     user: 'root',
     password: '',
     database: 'testdb'
-});
+};
 
-// Simulated user input (this could be from a form or query string)
-let username = "admin";
-let password = "' OR '1'='1"; // Injection payload for testing
+async function testVulnerableLogin() {
+    const connection = mysql.createConnection(dbConfig);
+    
+    // Promisify the query method for modern async/await syntax
+    const queryDb = util.promisify(connection.query).bind(connection);
 
-// ❌ VULNERABLE: Directly concatenating user input into SQL query
-let query = "SELECT * FROM users WHERE username = '" + username +
-            "' AND password = '" + password + "'";
+    try {
+        await new Promise((resolve, reject) => {
+            connection.connect((err) => err ? reject(err) : resolve());
+        });
+        console.log("Connected to database.");
 
-console.log("Executing query:", query);
+        // --- SIMULATED INPUT ---
+        // The injection payload intended for the test
+        const userInput = {
+            username: "admin",
+            password: "' OR '1'='1" 
+        };
 
-connection.query(query, (err, results) => {
-    if (err) {
-        console.error("Database error:", err);
-        return;
+        // ---------------------------------------------------------
+        // ⚠️ TEST CASE: VULNERABLE QUERY CONSTRUCTION
+        // ---------------------------------------------------------
+        // Directly concatenating input makes this vulnerable to SQLi
+        const sql = "SELECT * FROM users WHERE username = '" + userInput.username + 
+                    "' AND password = '" + userInput.password + "'";
+        
+        console.log(`\n[DEBUG] Executing SQL: ${sql}\n`);
+
+        const results = await queryDb(sql);
+
+        if (results.length > 0) {
+            console.log("✅ Login successful (Bypassed authentication!)");
+            console.log("User Data:", results[0]);
+        } else {
+            console.log("❌ Login failed");
+        }
+
+    } catch (err) {
+        console.error("Application Error:", err.message);
+    } finally {
+        connection.end();
+        console.log("Connection closed.");
     }
-    if (results.length > 0) {
-        console.log("Login successful (vulnerable to SQL injection!)");
-    } else {
-        console.log("Login failed");
-    }
-    connection.end();
-});
+}
+
+// Run the test
+testVulnerableLogin();
