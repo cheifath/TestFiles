@@ -1,25 +1,24 @@
 // INSECURE EXAMPLE - DO NOT USE IN PRODUCTION
 const express = require('express');
-const mysql = require('mysql');
+const { Client } = require('pg');
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 
-// ... database connection setup ...
+// ... database client setup ...
 
-app.post('/login', (req, res) => {
-    const email = req.body.email;
-    const password = req.body.password;
+app.post('/update-bio', async (req, res) => {
+    // ID comes securely from the user's logged-in session
+    const userId = req.session.userId; 
+    // The bio comes from the form submission
+    const newBio = req.body.bio;       
 
-    // VULNERABILITY: Using template literals to inject variables directly into SQL
-    const query = `SELECT id FROM users WHERE email = '${email}' AND password = '${password}'`;
+    // VULNERABILITY: Concatenating user input into the SET clause
+    const query = "UPDATE users SET bio = '" + newBio + "' WHERE id = " + userId;
 
-    db.query(query, (err, results) => {
-        if (err) throw err;
-        
-        if (results.length > 0) {
-            res.send("Welcome to your dashboard!");
-        } else {
-            res.status(401).send("Invalid credentials");
-        }
-    });
+    try {
+        await client.query(query);
+        res.send("Profile updated successfully!");
+    } catch (err) {
+        res.status(500).send("Database error");
+    }
 });
