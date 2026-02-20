@@ -1,22 +1,25 @@
 // INSECURE EXAMPLE - DO NOT USE IN PRODUCTION
 const express = require('express');
-const sqlite3 = require('sqlite3');
+const mysql = require('mysql');
 const app = express();
-const db = new sqlite3.Database(':memory:');
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/user', (req, res) => {
-    // 1. Get user input from the request URL (e.g., ?username=admin)
-    const username = req.query.username;
+// ... database connection setup ...
 
-    // 2. VULNERABILITY: Directly concatenating user input into the SQL command
-    const query = "SELECT * FROM users WHERE username = '" + username + "'";
+app.post('/login', (req, res) => {
+    const email = req.body.email;
+    const password = req.body.password;
 
-    // 3. Executing the query
-    db.all(query, (err, rows) => {
-        if (err) {
-            res.status(500).send("Database error");
+    // VULNERABILITY: Using template literals to inject variables directly into SQL
+    const query = `SELECT id FROM users WHERE email = '${email}' AND password = '${password}'`;
+
+    db.query(query, (err, results) => {
+        if (err) throw err;
+        
+        if (results.length > 0) {
+            res.send("Welcome to your dashboard!");
         } else {
-            res.json(rows);
+            res.status(401).send("Invalid credentials");
         }
     });
 });
