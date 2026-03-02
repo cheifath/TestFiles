@@ -14,3 +14,4 @@ def get_user_profile(username):
     
     conn.close()
     return user_data
+
