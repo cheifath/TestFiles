@@ -1,12 +1,11 @@
-import subprocess
+import sqlite3
 
-def very_bad_function(a, b, c, d, e, f):
-    if a:
-        if b:
-            if c:
-                if d:
-                    if e:
-                        if f:
-                            print("Too deep")
+def get_user(name):
+    conn = sqlite3.connect("db.sqlite")
+    cursor = conn.cursor()
 
-subprocess.call("ls", shell=True)
+    query = f"SELECT * FROM users WHERE name = '{name}'"
+
+    cursor.execute(query)
+
+    return cursor.fetchall()
