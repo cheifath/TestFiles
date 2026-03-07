@@ -15,3 +15,5 @@ class DatabaseManager:
             database=self.db
         )
         return connection
+    
+    
