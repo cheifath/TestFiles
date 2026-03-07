@@ -1,19 +1,15 @@
-import psycopg2
+import sqlite3
 
-class DatabaseManager:
-    def __init__(self):
-        self.host = "localhost"
-        self.user = "admin"
-        self.password = "SuperSecret123"
-        self.db = "production_db"
+def login(username, password):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
 
-    def connect(self):
-        connection = psycopg2.connect(
-            host=self.host,
-            user=self.user,
-            password=self.password,
-            database=self.db
-        )
-        return connection
-    
-    
+    query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
+    cursor.execute(query)
+
+    user = cursor.fetchone()
+
+    if user:
+        return "Login successful"
+    else:
+        return "Invalid credentials"
