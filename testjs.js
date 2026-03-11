@@ -1,42 +1,58 @@
-const express = require("express");
-const mysql = require("mysql");
-const app = express();
+const mysql = require('mysql');
+const util = require('util');
 
-app.use(express.json());
+// Configuration (Mock)
+const dbConfig = {
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'testdb'
+};
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "password",
-  database: "users_db"
-});
+async function testVulnerableLogin() {
+    const connection = mysql.createConnection(dbConfig);
+    
+    // Promisify the query method for modern async/await syntax
+    const queryDb = util.promisify(connection.query).bind(connection);
 
-app.post("/login", (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
+    try {
+        await new Promise((resolve, reject) => {
+            connection.connect((err) => err ? reject(err) : resolve());
+        });
+        console.log("Connected to database.");
 
-  // ❌ SQL Injection vulnerability
-  const query = 
-    "SELECT * FROM users WHERE username = '" +
-    username +
-    "' AND password = '" +
-    password +
-    "'";
+        // --- SIMULATED INPUT ---
+        // The injection payload intended for the test
+        const userInput = {
+            username: "admin",
+            password: "' OR '1'='1" 
+        };
 
-  db.query(query, (err, results) => {
-    if (err) {
-      res.status(500).send("Database error");
-      return;
+        // ---------------------------------------------------------
+        // ⚠️ TEST CASE: VULNERABLE QUERY CONSTRUCTION
+        // ---------------------------------------------------------
+        // Directly concatenating input makes this vulnerable to SQLi
+        const sql = "SELECT * FROM users WHERE username = '" + userInput.username + 
+                    "' AND password = '" + userInput.password + "'";
+        
+        console.log(`\n[DEBUG] Executing SQL: ${sql}\n`);
+
+        const results = await queryDb(sql);
+
+        if (results.length > 0) {
+            console.log("✅ Login successful (Bypassed authentication!)");
+            console.log("User Data:", results[0]);
+        } else {
+            console.log("❌ Login failed");
+        }
+
+    } catch (err) {
+        console.error("Application Error:", err.message);
+    } finally {
+        connection.end();
+        console.log("Connection closed.");
     }
+}
 
-    if (results.length > 0) {
-      res.send("Login successful");
-    } else {
-      res.status(401).send("Invalid credentials");
-    }
-  });
-});
-
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
-});
+// Run the test
+testVulnerableLogin();
