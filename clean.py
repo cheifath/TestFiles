@@ -1,3 +1,4 @@
-# clean.py
-def add(a, b):
-    return a + b
+import subprocess
+
+def bad():
+    subprocess.call("ls", shell=True)
